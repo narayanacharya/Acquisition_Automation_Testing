@@ -16,7 +16,7 @@ public class TestSourcesModel {
     public TestSourcesModel() {
     }
 
-    public static Feature getFeatureForTestCase(TestSourcesModel.AstNode astNode) {
+    public static Feature getFeatureForTestCase(AstNode astNode) {
         while(astNode.parent != null) {
             astNode = astNode.parent;
         }
@@ -24,30 +24,30 @@ public class TestSourcesModel {
         return (Feature)astNode.node;
     }
 
-    public static Background getBackgoundForTestCase(TestSourcesModel.AstNode astNode) {
+    public static Background getBackgoundForTestCase(AstNode astNode) {
         Feature feature = getFeatureForTestCase(astNode);
         ScenarioDefinition backgound = (ScenarioDefinition)feature.getChildren().get(0);
         return backgound instanceof Background ? (Background)backgound : null;
     }
 
-    public static ScenarioDefinition getScenarioDefinition(TestSourcesModel.AstNode astNode) {
+    public static ScenarioDefinition getScenarioDefinition(AstNode astNode) {
         return astNode.node instanceof ScenarioDefinition ? (ScenarioDefinition)astNode.node : (ScenarioDefinition)astNode.parent.parent.node;
     }
 
-    public static boolean isScenarioOutlineScenario(TestSourcesModel.AstNode astNode) {
+    public static boolean isScenarioOutlineScenario(AstNode astNode) {
         return !(astNode.node instanceof ScenarioDefinition);
     }
 
-    public static boolean isBackgroundStep(TestSourcesModel.AstNode astNode) {
+    public static boolean isBackgroundStep(AstNode astNode) {
         return astNode.parent.node instanceof Background;
     }
 
-    public static String calculateId(TestSourcesModel.AstNode astNode) {
+    public static String calculateId(AstNode astNode) {
         Node node = astNode.node;
         if (node instanceof ScenarioDefinition) {
             return calculateId(astNode.parent) + ";" + convertToId(((ScenarioDefinition)node).getName());
-        } else if (node instanceof TestSourcesModel.ExamplesRowWrapperNode) {
-            return calculateId(astNode.parent) + ";" + Integer.toString(((TestSourcesModel.ExamplesRowWrapperNode)node).bodyRowIndex + 2);
+        } else if (node instanceof ExamplesRowWrapperNode) {
+            return calculateId(astNode.parent) + ";" + Integer.toString(((ExamplesRowWrapperNode)node).bodyRowIndex + 2);
         } else if (node instanceof TableRow) {
             return calculateId(astNode.parent) + ";" + Integer.toString(1);
         } else if (node instanceof Examples) {
@@ -77,12 +77,12 @@ public class TestSourcesModel {
         return getScenarioDefinition(this.getAstNode(path, line));
     }
 
-    public TestSourcesModel.AstNode getAstNode(String path, int line) {
+    public AstNode getAstNode(String path, int line) {
         if (!this.pathToNodeMap.containsKey(path)) {
             this.parseGherkinSource(path);
         }
 
-        return this.pathToNodeMap.containsKey(path) ? (TestSourcesModel.AstNode)((Map)this.pathToNodeMap.get(path)).get(line) : null;
+        return this.pathToNodeMap.containsKey(path) ? (AstNode)((Map)this.pathToNodeMap.get(path)).get(line) : null;
     }
 
     public boolean hasBackground(String path, int line) {
@@ -91,7 +91,7 @@ public class TestSourcesModel {
         }
 
         if (this.pathToNodeMap.containsKey(path)) {
-            TestSourcesModel.AstNode astNode = (TestSourcesModel.AstNode)((Map)this.pathToNodeMap.get(path)).get(line);
+            AstNode astNode = (AstNode)((Map)this.pathToNodeMap.get(path)).get(line);
             return getBackgoundForTestCase(astNode) != null;
         } else {
             return false;
@@ -135,7 +135,7 @@ public class TestSourcesModel {
                 GherkinDocument gherkinDocument = (GherkinDocument)parser.parse(((TestSourceRead)this.pathToReadEventMap.get(path)).source, matcher);
                 this.pathToAstMap.put(path, gherkinDocument);
                 Map<Integer, AstNode> nodeMap = new HashMap();
-                TestSourcesModel.AstNode currentParent = new TestSourcesModel.AstNode(gherkinDocument.getFeature(), (TestSourcesModel.AstNode)null);
+                AstNode currentParent = new AstNode(gherkinDocument.getFeature(), (AstNode)null);
                 Iterator var7 = gherkinDocument.getFeature().getChildren().iterator();
 
                 while(var7.hasNext()) {
@@ -151,14 +151,14 @@ public class TestSourcesModel {
         }
     }
 
-    private void processScenarioDefinition(Map<Integer, AstNode> nodeMap, ScenarioDefinition child, TestSourcesModel.AstNode currentParent) {
-        TestSourcesModel.AstNode childNode = new TestSourcesModel.AstNode(child, currentParent);
+    private void processScenarioDefinition(Map<Integer, AstNode> nodeMap, ScenarioDefinition child, AstNode currentParent) {
+        AstNode childNode = new AstNode(child, currentParent);
         nodeMap.put(child.getLocation().getLine(), childNode);
         Iterator var5 = child.getSteps().iterator();
 
         while(var5.hasNext()) {
             Step step = (Step)var5.next();
-            nodeMap.put(step.getLocation().getLine(), new TestSourcesModel.AstNode(step, childNode));
+            nodeMap.put(step.getLocation().getLine(), new AstNode(step, childNode));
         }
 
         if (child instanceof ScenarioOutline) {
@@ -167,20 +167,20 @@ public class TestSourcesModel {
 
     }
 
-    private void processScenarioOutlineExamples(Map<Integer, AstNode> nodeMap, ScenarioOutline scenarioOutline, TestSourcesModel.AstNode childNode) {
+    private void processScenarioOutlineExamples(Map<Integer, AstNode> nodeMap, ScenarioOutline scenarioOutline, AstNode childNode) {
         Iterator var4 = scenarioOutline.getExamples().iterator();
 
         while(var4.hasNext()) {
             Examples examples = (Examples)var4.next();
-            TestSourcesModel.AstNode examplesNode = new TestSourcesModel.AstNode(examples, childNode);
+            AstNode examplesNode = new AstNode(examples, childNode);
             TableRow headerRow = examples.getTableHeader();
-            TestSourcesModel.AstNode headerNode = new TestSourcesModel.AstNode(headerRow, examplesNode);
+            AstNode headerNode = new AstNode(headerRow, examplesNode);
             nodeMap.put(headerRow.getLocation().getLine(), headerNode);
 
             for(int i = 0; i < examples.getTableBody().size(); ++i) {
                 TableRow examplesRow = (TableRow)examples.getTableBody().get(i);
-                Node rowNode = new TestSourcesModel.ExamplesRowWrapperNode(examplesRow, i);
-                TestSourcesModel.AstNode expandedScenarioNode = new TestSourcesModel.AstNode(rowNode, examplesNode);
+                Node rowNode = new ExamplesRowWrapperNode(examplesRow, i);
+                AstNode expandedScenarioNode = new AstNode(rowNode, examplesNode);
                 nodeMap.put(examplesRow.getLocation().getLine(), expandedScenarioNode);
             }
         }
@@ -189,9 +189,9 @@ public class TestSourcesModel {
 
     class AstNode {
         public final Node node;
-        public final TestSourcesModel.AstNode parent;
+        public final AstNode parent;
 
-        public AstNode(Node node, TestSourcesModel.AstNode parent) {
+        public AstNode(Node node, AstNode parent) {
             this.node = node;
             this.parent = parent;
         }

@@ -1,4 +1,4 @@
-package common;
+package bdd.common;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
@@ -33,5 +33,9 @@ public class CommonTask {
         js.executeScript("window.scrollBy(0,-100)");
     }
 
+    public static boolean isElementPresent(By by) {
+
+        return true;
+    }
 
 }
